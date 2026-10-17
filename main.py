@@ -1,86 +1,57 @@
-import reflex as rx
+import streamlit as st
 
-class FireControlState(rx.State):
-    # Form Input Coordinates
-    cannon_x: float = 0.0
-    cannon_z: float = 0.0
-    target_x: float = 100.0
-    target_z: float = 100.0
+# Configure the page style to look like a dark tracking dashboard
+st.set_page_config(page_title="OSC Fire Control", page_icon="🎯", layout="centered")
+
+st.title("🎯 OSC Fire Control Dashboard")
+st.write("Calculate target displacements relative to your cannon coordinates.")
+
+# Use two clean columns to match a structural layout design
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Origin Configuration")
     
-    # Target calculations
-    @rx.var
-    def delta_x(self) -> float:
-        return self.target_x - self.cannon_x
+    # Input field with built-in validation step for multiples of 16
+    origin_x = st.number_input("Origin X (Must be a multiple of 16)", value=0, step=16)
+    if origin_x % 16 != 0:
+        st.error("⚠️ Origin X must be divisible by 16.")
+        
+    origin_y = st.number_input("Origin Y", value=64, step=1)
+    
+    origin_z = st.number_input("Origin Z (Must be a multiple of 16)", value=0, step=16)
+    if origin_z % 16 != 0:
+        st.error("⚠️ Origin Z must be divisible by 16.")
 
-    @rx.var
-    def delta_z(self) -> float:
-        return self.target_z - self.cannon_z
+with col2:
+    st.subheader("Target Coordinates")
+    target_x = st.number_input("Target X", value=100, step=1)
+    target_y = st.number_input("Target Y", value=64, step=1)
+    target_z = st.number_input("Target Z", value=100, step=1)
 
-    @rx.var
-    def required_tnt(self) -> float:
-        # Insert your dynamic motion/trajectory vector scaling here
-        # Example formula: distance divided by standard acceleration multiplier
-        distance = (self.delta_x**2 + self.delta_z**2) ** 0.5
-        return round(distance * 0.75, 2)
+st.divider()
 
-def index() -> rx.Component:
-    return rx.center(
-        rx.vstack(
-            rx.heading("OSC FIRE CONTROL SYSTEM", size="8", color_scheme="crimson"),
-            rx.text("Calculate trajectories and firing solutions for coordinate shifts.", color_scheme="gray"),
-            
-            rx.divider(),
-            
-            # Position Inputs
-            rx.hstack(
-                rx.vstack(
-                    rx.text("Cannon X"),
-                    rx.input(value=FireControlState.cannon_x, on_change=FireControlState.set_cannon_x, type="number"),
-                ),
-                rx.vstack(
-                    rx.text("Cannon Z"),
-                    rx.input(value=FireControlState.cannon_z, on_change=FireControlState.set_cannon_z, type="number"),
-                ),
-                spacing="4"
-            ),
-            
-            rx.hstack(
-                rx.vstack(
-                    rx.text("Target X"),
-                    rx.input(value=FireControlState.target_x, on_change=FireControlState.set_target_x, type="number"),
-                ),
-                rx.vstack(
-                    rx.text("Target Z"),
-                    rx.input(value=FireControlState.target_z, on_change=FireControlState.set_target_z, type="number"),
-                ),
-                spacing="4"
-            ),
-            
-            rx.divider(),
-            
-            # Dynamic Results Output Card
-            rx.card(
-                rx.vstack(
-                    rx.heading("Firing Solution Outputs", size="4"),
-                    rx.text(f"ΔX Vector: {FireControlState.delta_x}"),
-                    rx.text(f"ΔZ Vector: {FireControlState.delta_z}"),
-                    rx.text(f"Estimated TNT Charge Needed: {FireControlState.required_tnt} blocks", font_weight="bold", color="red"),
-                    align="start",
-                    spacing="2"
-                ),
-                width="100%",
-                background_color="rgba(0, 0, 0, 0.2)"
-            ),
-            
-            spacing="6",
-            padding="8",
-            background_color="neutral",
-            border_radius="lg",
-            box_shadow="xl",
-            max_width="500px",
-        ),
-        padding_top="10%"
-    )
+# Compute the trajectory coordinate differences matching your core math logic
+output_x = target_x - origin_x
+output_y = target_y - origin_y
+output_z = target_z - origin_z
 
-app = rx.App(theme=rx.theme(appearance="dark")) # Forces dark theme like cubicmetre's app
-app.add_page(index)
+# Firing Solution Outputs Display Card
+st.subheader("📊 Firing Solution Output Vector")
+
+if (origin_x % 16 == 0) and (origin_z % 16 == 0):
+    # Render the text matching your explicit layout variables
+    st.info(f"**Displacement Vector (Target - Origin):**")
+    
+    # Large readable status layout metrics
+    m1, m2, m3 = st.columns(3)
+    m1.metric(label="ΔX Output", value=int(output_x))
+    m2.metric(label="ΔY Output", value=int(output_y))
+    m3.metric(label="ΔZ Output", value=int(output_z))
+    
+    # Useful formatted copy-paste string format for command execution lines
+    st.code(f"Relative Offset: ~{int(output_x)} ~{int(output_y)} ~{int(output_z)}")
+else:
+    st.warning("Please correct the invalid origin alignments above to generate the vector output.")
+
+
